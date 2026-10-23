@@ -55,6 +55,29 @@ sudo usermod -aG input $USER     # once, then log out and back in
 PYNPUT_BACKEND=uinput ./start-mac-linux.sh
 ```
 
+### From the command line
+
+Instead of downloading the ZIP by hand, you can install the `creamy-keys`
+command with pip. Git is not needed.
+
+Windows (Command Prompt or PowerShell):
+
+```bat
+py -m pip install https://github.com/erawandavid/creamy-keyboard-sound/archive/refs/heads/claude/modest-hawking-hxb3je.zip
+py -m creamy_keys
+```
+
+macOS and Linux (in its own environment, so it doesn't touch the system Python):
+
+```sh
+python3 -m venv ~/.creamy-keys
+~/.creamy-keys/bin/pip install https://github.com/erawandavid/creamy-keyboard-sound/archive/refs/heads/claude/modest-hawking-hxb3je.zip
+~/.creamy-keys/bin/creamy-keys
+```
+
+Options go after the command, for example `py -m creamy_keys --volume 0.6`.
+Run the same install command again to update.
+
 ## Make it yours
 
 Add any of these after the start command, for example
