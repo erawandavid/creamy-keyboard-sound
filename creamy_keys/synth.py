@@ -58,6 +58,26 @@ PRESS_PROFILES = {
     ),
 }
 
+# A phone-style tap: one short, bright tick with almost no body. Letters tick
+# highest, the bigger keys lower and delete lowest.
+TICK = ((1.0, 1.0, 1.0), (2.4, 0.12, 0.5))
+
+PHONE_PROFILES = {
+    "key": Profile(
+        body_hz=1650, body_decay=0.0009, tap_cutoff=6000, tap_level=0.03,
+        length=0.04, level=0.5, modes=TICK,
+    ),
+    "wide": Profile(
+        body_hz=1150, body_decay=0.001, tap_cutoff=5000, tap_level=0.03,
+        length=0.04, level=0.5, modes=TICK,
+    ),
+    "backspace": Profile(
+        body_hz=650, body_decay=0.0013, tap_cutoff=4000, tap_level=0.03,
+        length=0.04, level=0.5, modes=TICK,
+    ),
+}
+PHONE_PROFILES["space"] = PHONE_PROFILES["wide"]
+
 
 def release_profile(press: Profile) -> Profile:
     """The upstroke: the keycap returning to the top, quieter and lighter."""
