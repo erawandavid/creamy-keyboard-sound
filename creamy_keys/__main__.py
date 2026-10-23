@@ -9,8 +9,11 @@ from typing import List, Optional
 
 from . import __version__
 from .app import MUTE_SHORTCUT, CreamyKeyboard, demo, listen
-from .bank import BUILTIN_PACK, load_pack, synthesize
+from .bank import BUILTIN_PACK, SoundBank, load_pack, synthesize
 from .mixer import AudioOutput, Mixer, list_devices, parse_device
+from .synth import PHONE_PROFILES
+
+SOUNDS = ("cream", "iphone", "synth")
 
 
 def positive(text: str) -> float:
@@ -31,10 +34,12 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
                         help="below 1 is deeper and thockier, above 1 is lighter (default: 1.0)")
     parser.add_argument("--no-release", action="store_true",
                         help="stay silent when a key is let go")
-    parser.add_argument("--pack", type=Path, metavar="FOLDER", default=BUILTIN_PACK,
+    parser.add_argument("--sound", choices=SOUNDS, default="cream",
+                        help="cream: recordings of NovelKeys Cream switches (default); "
+                             "iphone: short, crisp phone-style taps; "
+                             "synth: a computer-generated thock")
+    parser.add_argument("--pack", type=Path, metavar="FOLDER",
                         help="use your own WAV sounds from FOLDER instead (see README)")
-    parser.add_argument("--synth", action="store_true",
-                        help="use computer-generated sounds instead of recordings")
     parser.add_argument("--device", help="audio output to use, by number or name")
     parser.add_argument("--list-devices", action="store_true",
                         help="list the audio outputs and exit")
@@ -42,6 +47,16 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
                         help="play a short typing demo and exit, to test your speakers")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args(argv)
+
+
+def make_bank(args: argparse.Namespace, samplerate: int) -> SoundBank:
+    if args.pack:
+        return load_pack(args.pack, samplerate)
+    if args.sound == "iphone":
+        return synthesize(samplerate, PHONE_PROFILES, with_releases=False)
+    if args.sound == "synth":
+        return synthesize(samplerate)
+    return load_pack(BUILTIN_PACK, samplerate)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -60,7 +75,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     try:
-        bank = synthesize(output.samplerate) if args.synth else load_pack(args.pack, output.samplerate)
+        bank = make_bank(args, output.samplerate)
     except (OSError, ValueError) as e:
         print(f"Could not load the sound pack: {e}", file=sys.stderr)
         return 1
@@ -78,7 +93,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             demo(keyboard)
         else:
             print(
-                "Creamy keys are ON - type anywhere and enjoy the thock.\n"
+                f"Creamy keys are ON ({args.pack or args.sound}) - type anywhere.\n"
                 f"  {MUTE_SHORTCUT:<17} mute / unmute\n"
                 "  Ctrl+C            quit (or close this window)\n"
                 f"Playing through: {output.device_name}",

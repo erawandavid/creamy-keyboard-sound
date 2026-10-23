@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from creamy_keys.synth import PRESS_PROFILES, release_profile, render
+from creamy_keys.synth import PHONE_PROFILES, PRESS_PROFILES, release_profile, render
 
 SR = 44100
 
@@ -70,3 +70,26 @@ def test_other_samplerates():
     x = render(PRESS_PROFILES["key"], 48000, np.random.default_rng(0))
     assert len(x) == int(PRESS_PROFILES["key"].length * 48000)
     assert np.all(np.isfinite(x))
+
+
+def fade_time(x, level):
+    """Milliseconds from the loudest point until the sound stays below ``level`` of it."""
+    a = np.abs(x)
+    start = int(np.argmax(a))
+    tail = np.maximum.accumulate(a[::-1])[::-1][start:]
+    return np.argmax(tail < level * a[start]) / SR * 1000
+
+
+@pytest.mark.parametrize("category", sorted(PHONE_PROFILES))
+def test_phone_taps_are_short_crisp_ticks(category):
+    x = render(PHONE_PROFILES[category], SR, np.random.default_rng(3))
+    assert np.all(np.isfinite(x))
+    assert fade_time(x, 0.1) < 6
+    assert fade_time(x, 0.03) < 12
+
+
+def test_phone_letters_tick_highest_and_delete_lowest():
+    pitch = {name: centroid(render(p, SR, np.random.default_rng(4))) for name, p in PHONE_PROFILES.items()}
+    assert pitch["key"] > pitch["wide"] > pitch["backspace"]
+    assert pitch["space"] == pytest.approx(pitch["wide"], rel=0.1)
+    assert 1500 < pitch["key"] < 2300

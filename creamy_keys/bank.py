@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
-from .synth import PRESS_PROFILES, release_profile, render
+from .synth import PRESS_PROFILES, Profile, release_profile, render
 
 # Recordings of a keyboard with NovelKeys Cream switches, one per key.
 BUILTIN_PACK = Path(__file__).parent / "sounds" / "nk-cream"
@@ -63,15 +63,22 @@ class SoundBank:
         return None
 
 
-def synthesize(samplerate: int, variants: int = 8, seed: Optional[int] = None) -> SoundBank:
-    """The built-in creamy sound set."""
+def synthesize(
+    samplerate: int,
+    profiles: Dict[str, Profile] = PRESS_PROFILES,
+    with_releases: bool = True,
+    variants: int = 8,
+    seed: Optional[int] = None,
+) -> SoundBank:
+    """A computer-generated sound set, the creamy thock unless ``profiles`` says otherwise."""
     rng = np.random.default_rng(seed)
     presses: Sounds = {}
     releases: Sounds = {}
-    for category, profile in PRESS_PROFILES.items():
-        up = release_profile(profile)
+    for category, profile in profiles.items():
         presses[category] = [render(profile, samplerate, rng) for _ in range(variants)]
-        releases[category] = [render(up, samplerate, rng) for _ in range(variants)]
+        if with_releases:
+            up = release_profile(profile)
+            releases[category] = [render(up, samplerate, rng) for _ in range(variants)]
     return SoundBank(presses, releases, samplerate)
 
 
