@@ -20,15 +20,16 @@ def test_normalise_maps_space_character():
     assert normalise(" ") == "space"
 
 
-def test_ctrl_letters_reported_as_control_characters_use_the_key_sound():
+def test_ctrl_letters_reported_as_control_characters_are_not_long_keys():
     # Windows reports Ctrl+M as "\r" and Ctrl+H as "\b".
-    assert classify("\r") == ("key",)
-    assert classify("\b") == ("key",)
+    assert classify("\r") == ("\r", "key")
+    assert classify("\b") == ("\b", "key")
 
 
-def test_classify_letters_and_unknown_keys_use_the_key_sound():
-    assert classify("a") == ("key",)
-    assert classify("A") == ("key",)
+def test_classify_letters_and_other_keys():
+    assert classify("a") == ("a", "key")
+    assert classify("A") == ("a", "key")
+    assert classify("[") == ("[", "key")
     assert classify("") == ("key",)
     assert classify("esc") == ("esc", "key")
 

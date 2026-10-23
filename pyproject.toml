@@ -20,6 +20,9 @@ creamy-keys = "creamy_keys.__main__:main"
 [tool.setuptools]
 packages = ["creamy_keys"]
 
+[tool.setuptools.package-data]
+creamy_keys = ["sounds/*/*"]
+
 [tool.setuptools.dynamic]
 version = { attr = "creamy_keys.__version__" }
 

@@ -9,10 +9,8 @@ from typing import List, Optional
 
 from . import __version__
 from .app import MUTE_SHORTCUT, CreamyKeyboard, demo, listen
-from .bank import load_pack, synthesize, write_wav
+from .bank import BUILTIN_PACK, load_pack, synthesize
 from .mixer import AudioOutput, Mixer, list_devices, parse_device
-
-EXPORT_SAMPLERATE = 44100
 
 
 def positive(text: str) -> float:
@@ -33,35 +31,21 @@ def parse_args(argv: Optional[List[str]]) -> argparse.Namespace:
                         help="below 1 is deeper and thockier, above 1 is lighter (default: 1.0)")
     parser.add_argument("--no-release", action="store_true",
                         help="stay silent when a key is let go")
-    parser.add_argument("--pack", type=Path, metavar="FOLDER",
+    parser.add_argument("--pack", type=Path, metavar="FOLDER", default=BUILTIN_PACK,
                         help="use your own WAV sounds from FOLDER instead (see README)")
+    parser.add_argument("--synth", action="store_true",
+                        help="use computer-generated sounds instead of recordings")
     parser.add_argument("--device", help="audio output to use, by number or name")
     parser.add_argument("--list-devices", action="store_true",
                         help="list the audio outputs and exit")
     parser.add_argument("--demo", action="store_true",
                         help="play a short typing demo and exit, to test your speakers")
-    parser.add_argument("--export", type=Path, metavar="FOLDER",
-                        help="save the built-in sounds as WAV files in FOLDER and exit")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser.parse_args(argv)
 
 
-def export(folder: Path) -> None:
-    folder.mkdir(parents=True, exist_ok=True)
-    bank = synthesize(EXPORT_SAMPLERATE, seed=0)
-    for kind, sounds in (("", bank.presses), ("-release", bank.releases)):
-        for category, variants in sounds.items():
-            for i, samples in enumerate(variants, 1):
-                write_wav(folder / f"{category}{kind}{i}.wav", samples, EXPORT_SAMPLERATE)
-    print(f"Saved the sounds in {folder.resolve()}")
-
-
 def main(argv: Optional[List[str]] = None) -> int:
     args = parse_args(argv)
-
-    if args.export:
-        export(args.export)
-        return 0
 
     try:
         if args.list_devices:
@@ -76,7 +60,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
 
     try:
-        bank = load_pack(args.pack, output.samplerate) if args.pack else synthesize(output.samplerate)
+        bank = synthesize(output.samplerate) if args.synth else load_pack(args.pack, output.samplerate)
     except (OSError, ValueError) as e:
         print(f"Could not load the sound pack: {e}", file=sys.stderr)
         return 1

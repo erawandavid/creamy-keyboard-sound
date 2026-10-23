@@ -1,20 +1,18 @@
 # Creamy Keyboard Sound
 
 Every key you press on your laptop sounds like a creamy custom mechanical
-keyboard: a deep, soft, smooth *thock* instead of a flat plastic tap.
+keyboard instead of a flat plastic tap.
 
+- The sounds are real recordings of a keyboard with **NovelKeys Cream**
+  switches, the switch that "creamy" sounds are named after.
+- Every letter has its own recording, made from that key on the real board,
+  and space, enter, backspace, shift, tab and caps lock have theirs too.
 - Works everywhere: in your browser, chats, games and documents.
-- Long keys (space, enter, backspace, shift, tab, caps lock) sound deeper, like
-  real stabilised keys.
-- Every key has its own slightly different pitch, and no two presses are
-  exactly the same, so it never sounds robotic.
-- A soft upstroke sound when you let go of a key.
 - Holding a key down plays one sound, not a machine gun.
 - Very low lag, with no delay between the press and the sound.
 - **Ctrl+Alt+M** (on a Mac: **Control+Option+M**) mutes and unmutes it.
 
-The sounds are synthesised by the program itself, so there is nothing to
-download. You can also [use your own recordings](#use-your-own-sounds).
+You can also [use your own recordings](#use-your-own-sounds).
 
 ## Start it
 
@@ -68,12 +66,12 @@ after `creamy_keys` on the line that runs `creamy_keys`.
 | --- | --- |
 | `--volume 0.5` | Quieter (or louder with e.g. `1.5`). |
 | `--pitch 0.85` | Deeper and thockier. Above `1` sounds lighter and poppier. |
-| `--no-release` | No sound when you let go of a key. |
+| `--no-release` | No sound when you let go of a key (for sound packs that have one). |
 | `--demo` | Plays a short typing demo, to test your speakers. |
 | `--list-devices` | Shows your sound outputs. |
 | `--device 3` | Plays on output 3 from that list (a name works too). |
 | `--pack FOLDER` | Uses your own sounds (see below). |
-| `--export FOLDER` | Saves the built-in sounds as WAV files. |
+| `--synth` | Uses computer-generated sounds instead of the recordings. |
 
 ## Use your own sounds
 
@@ -82,15 +80,22 @@ folder and start with `--pack path/to/folder`. Name the files after the key:
 
 | File | Used for |
 | --- | --- |
-| `key.wav` (required) | Every key that has no file of its own |
+| `key.wav` | Every key that has no file of its own |
+| `a.wav`, `b.wav`, `5.wav` … | That one letter, number or symbol |
 | `space.wav` | Space bar |
 | `wide.wav` | All long keys: enter, backspace, shift, tab, caps lock |
 | `enter.wav`, `backspace.wav`, `shift.wav`, `tab.wav` … | That one key |
 | `release.wav`, `space-release.wav` … | Sound when the key is let go |
 
-Several versions of the same sound make it more natural. Number them, like
-`key1.wav`, `key2.wav`, `key3.wav`, and one is picked at random for each press.
-To see a complete example, run with `--export my-pack` and look at the files.
+You need either `key.wav` or a file for each letter. If there is no
+`key.wav`, other keys borrow the letters' sounds. Several versions of the same
+sound make it more natural. Number them, like `key1.wav`, `key2.wav`,
+`key3.wav`, and one is picked at random for each press. Silence around each
+sound is cut off and the loudness is evened out automatically. For a complete
+example, look at the built-in sounds in
+[`creamy_keys/sounds/nk-cream`](creamy_keys/sounds/nk-cream).
+
+Only use recordings you made yourself or that you have permission to use.
 
 ## Start it automatically
 
@@ -115,7 +120,15 @@ python -m pytest
 python -m creamy_keys --help
 ```
 
-- `creamy_keys/synth.py`: how the creamy sound is built (tap, thock, pop).
+- `creamy_keys/bank.py`: loads sound packs and evens them out.
+- `creamy_keys/synth.py`: the computer-generated sound (`--synth`).
 - `creamy_keys/keys.py`: which keys get which sound, and auto-repeat detection.
 - `creamy_keys/mixer.py`: low-latency playback of overlapping sounds.
 - `creamy_keys/app.py`: connects the keyboard to the sounds.
+
+## Credits
+
+The built-in sounds are the "NK Cream (original by Ryan)" pack from
+[Mechvibes](https://github.com/hainguyents13/mechvibes), used under the MIT
+License, Copyright (c) 2021 Hai Nguyen. See
+[`creamy_keys/sounds/nk-cream/LICENSE.txt`](creamy_keys/sounds/nk-cream/LICENSE.txt).

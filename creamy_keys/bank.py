@@ -1,4 +1,4 @@
-"""Sets of ready-to-play key sounds: synthesised, or loaded from WAV files."""
+"""Sets of ready-to-play key sounds: recorded WAV files, or synthesised."""
 
 from __future__ import annotations
 
@@ -12,6 +12,9 @@ import numpy as np
 
 from .synth import PRESS_PROFILES, release_profile, render
 
+# Recordings of a keyboard with NovelKeys Cream switches, one per key.
+BUILTIN_PACK = Path(__file__).parent / "sounds" / "nk-cream"
+
 # Other file names people are likely to use for the same keys.
 ALIASES = {
     "keys": "key",
@@ -20,7 +23,13 @@ ALIASES = {
     "return": "enter",
     "caps": "caps_lock",
     "capslock": "caps_lock",
+    "caps lock": "caps_lock",
 }
+
+# Recordings are evened out to this loudness (RMS of their loudest 20 ms),
+# unless that would push their peak above MAX_PEAK.
+LOUDNESS = 0.09
+MAX_PEAK = 0.8
 
 Sounds = Dict[str, List[np.ndarray]]
 
@@ -70,23 +79,47 @@ def load_pack(folder: Path, samplerate: int) -> SoundBank:
     """Load a folder of WAV files named after the keys they are for.
 
     ``key.wav`` (or ``key1.wav``, ``key2.wav``, ...) is used for every key that
-    has no file of its own; ``space.wav``, ``enter.wav``, ``wide.wav`` (all long
-    keys) etc. are optional, and so are release sounds such as
+    has no file of its own; without it, those keys borrow the letters' sounds
+    (``a.wav``, ``b.wav``, ...). ``space.wav``, ``enter.wav``, ``wide.wav`` (all
+    long keys) etc. are optional, and so are release sounds such as
     ``release.wav`` or ``space-release.wav``.
     """
     folder = Path(folder)
     presses: Sounds = defaultdict(list)
     releases: Sounds = defaultdict(list)
     for path in sorted(folder.glob("*.[wW][aA][vV]")):
-        stem = re.sub(r"[-_ ]*\d*$", "", path.stem.lower())
+        stem = re.sub(r"(?<=.)[-_ ]*\d+$", "", path.stem.lower())
         target = presses
         if stem.endswith("release"):
             stem = stem[: -len("release")].rstrip("-_ ") or "key"
             target = releases
-        target[ALIASES.get(stem, stem)].append(read_wav(path, samplerate))
+        target[ALIASES.get(stem, stem)].append(tidy(read_wav(path, samplerate), samplerate))
     if not presses.get("key"):
-        raise ValueError(f'{folder} needs a "key.wav" (the sound used for most keys)')
+        presses["key"] = [s for name, sounds in presses.items() if len(name) == 1 for s in sounds]
+    if not presses["key"]:
+        raise ValueError(f'{folder} needs a "key.wav", or a sound for each letter like "a.wav"')
     return SoundBank(dict(presses), dict(releases), samplerate)
+
+
+def tidy(samples: np.ndarray, samplerate: int) -> np.ndarray:
+    """Cut the silence around a recording and even out its loudness."""
+    level = np.abs(samples)
+    audible = np.flatnonzero(level > 0.02 * level.max(initial=0))
+    if not len(audible):
+        return samples
+    # Starting right at the click keeps the delay after a key press as short as possible.
+    start = max(0, int(audible[0]) - int(0.001 * samplerate))
+    tail = int(0.01 * samplerate)
+    samples = samples[start : int(audible[-1]) + tail].astype(np.float32)
+    fade = min(tail, len(samples))
+    samples[len(samples) - fade :] *= np.linspace(1, 0, fade, dtype=np.float32)
+
+    peak = float(np.abs(samples).max())
+    if peak == 0:
+        return samples
+    window = min(len(samples), int(0.02 * samplerate))
+    loudness = np.sqrt(np.convolve(samples**2, np.ones(window) / window, "valid").max())
+    return samples * min(LOUDNESS / loudness, MAX_PEAK / peak)
 
 
 def read_wav(path: Path, samplerate: int) -> np.ndarray:
@@ -117,16 +150,6 @@ def read_wav(path: Path, samplerate: int) -> np.ndarray:
     if rate != samplerate and len(data) > 1:
         data = resample(data, rate / samplerate)
     return data.astype(np.float32)
-
-
-def write_wav(path: Path, samples: np.ndarray, samplerate: int) -> None:
-    """Write mono float samples as a 16-bit PCM WAV file."""
-    ints = (np.clip(samples, -1, 1) * 32767).astype("<i2")
-    with wave.open(str(path), "wb") as f:
-        f.setnchannels(1)
-        f.setsampwidth(2)
-        f.setframerate(samplerate)
-        f.writeframes(ints.tobytes())
 
 
 def resample(samples: np.ndarray, rate: float) -> np.ndarray:

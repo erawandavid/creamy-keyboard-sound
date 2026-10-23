@@ -33,10 +33,8 @@ def classify(name: str) -> Tuple[str, ...]:
     Every chain ends in ``"key"``, the sound all sound banks must provide.
     """
     name = normalise(name)
-    if len(name) <= 1:
+    if not name:
         return ("key",)
-    if name == "space":
-        return ("space", "key")
     if name in WIDE_KEYS:
         return (name, "wide", "key")
     return (name, "key")
